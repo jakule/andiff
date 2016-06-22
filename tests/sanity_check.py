@@ -9,7 +9,6 @@ import os
 import time
 import tempfile
 import hashlib
-import humanize
 import logging
 import itertools
 import argparse
@@ -124,12 +123,10 @@ def run_test(tmp_dir, files_size, andiff_app, anpatch_app):
         anpatch_app: Location of anpatch app
     """
     source_file = create_tmp_file(tmp_dir=tmp_dir, file_size=files_size)
-    logging.debug('Creating source file %s of size %s', source_file,
-                  humanize.naturalsize(files_size, binary=True))
+    logging.debug('Creating source file %s of size %s KB', source_file, files_size)
 
     target_file = create_tmp_file(tmp_dir=tmp_dir, file_size=files_size)
-    logging.debug('Creating target file %s of size %s', target_file,
-                  humanize.naturalsize(files_size, binary=True))
+    logging.debug('Creating target file %s of size %s KB', target_file, files_size)
 
     patch_file = create_tmp_file(tmp_dir=tmp_dir, file_size=0)
     logging.debug('Patch file has been created: %s', patch_file)

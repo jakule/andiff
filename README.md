@@ -1,5 +1,6 @@
 Andiff
 ======
+[![Build Status](https://travis-ci.org/jakule/andiff.svg?branch=master)](https://travis-ci.org/jakule/andiff)
 
 Andiff is another version of bsdiff application focused on performance. Original application can be found [here](http://www.daemonology.net/bsdiff/).
 
