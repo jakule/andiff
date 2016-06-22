@@ -59,8 +59,7 @@ class base_data_reader {
 
 class file_reader : public base_data_reader<file_reader> {
  public:
-  file_reader() = default;
-  file_reader(file_reader& a) = default;
+  file_reader() : m_fd(-1), m_curr_pos(0), m_size(0) {}
 
   void open(const std::string& file_path) {
     m_fd = ::open(file_path.c_str(), O_RDONLY);
@@ -77,8 +76,6 @@ class file_reader : public base_data_reader<file_reader> {
     m_curr_pos += chunk;
     return static_cast<ssize_t>(chunk);
   }
-
-  bool eof() { return m_curr_pos == m_size; }
 
   ssize_t seek(ssize_t pos) {
     ssize_t ret = ::lseek(m_fd, pos, SEEK_SET);
@@ -109,7 +106,8 @@ class anpatch_reader : public base_data_reader<anpatch_reader> {
   anpatch_reader() : m_eof(false) {}
 
   template <size_t N>
-  anpatch_reader(const std::string& file_path, const char (&magic)[N]) : m_eof(false) {
+  anpatch_reader(const std::string& file_path, const char (&magic)[N])
+      : m_eof(false) {
     open(file_path, magic);
   }
 
@@ -160,7 +158,7 @@ class anpatch_reader : public base_data_reader<anpatch_reader> {
   template <size_t N>
   inline void check_magic(const char (&magic_string)[N]) {
     static_assert(N > 0, "N cannot be less than 1");
-    std::vector<char> magic(N-1);
+    std::vector<char> magic(N - 1);
     size_t read = fread(magic.data(), 1, magic.size(), m_fd);
     enforce(read == magic.size(), "");
     enforce(std::equal(magic.begin(), magic.end(), magic_string),

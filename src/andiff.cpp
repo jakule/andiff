@@ -52,12 +52,14 @@ static T search_simple(const std::vector<T> &SA,
 
   while (rpos - lpos > 1) {
     T mid = lpos + (rpos - lpos) / 2;
+    __builtin_prefetch(static_cast<const void *>(&SA[mid]), 0, 1);
 
-    T sa_mid = SA[mid];
-    const uint8_t *old_start = source.data() + sa_mid;
-    T cmp_min = std::min(oldsize - sa_mid, newsize);
+    const uint8_t *old_start = source.data() + SA[mid];
+    T cmp_min = std::min(oldsize - SA[mid], newsize);
     T i = std::min(lmin, rmin);
+
     for (; i < cmp_min; ++i) {
+      __builtin_prefetch(static_cast<const void *>(&target[i]), 0, 1);
       if (old_start[i] < target[i]) {  // move right
         lpos = mid;
         lmin = i;
