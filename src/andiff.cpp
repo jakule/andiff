@@ -126,6 +126,8 @@ class andiff_base {
     uint32_t threads_number = m_threads_number;
     std::vector<std::thread> threads(threads_number);
     std::thread save_thread(std::bind(&andiff_base::save, this));
+    std::cout << "Comparison has been started using " << threads_number
+              << " threads\n";
 
     _type range = (get_target_size() + 1) / threads_number;
     _type start = 0;
@@ -168,9 +170,6 @@ class andiff_base {
 
     const _type tsize = get_target_size();
     const _type ssize = static_cast<_type>(m_source.size());
-
-    ///@todo Leave it or remove it... this is the question
-    std::cout << "START" << std::endl;
 
     scan = start;
     len = 0;
@@ -259,14 +258,15 @@ class andiff_base {
     }
 
     meta_data.close();
-
-    return 0;
   }
 
   int save() {
     std::array<uint8_t, 8 * 3> buf;
+    // Allocate size of output size or 16MB
+    const int64_t block_size =
+        std::min(m_target.size() + 1, 16UL * 1024 * 1024);
     /// @todo Fixed size array can be used
-    std::vector<uint8_t> buffer(m_target.size() + 1);
+    std::vector<uint8_t> buffer(block_size);
     diff_meta dm = {};
     int64_t next_position = 0;
 
@@ -280,15 +280,30 @@ class andiff_base {
         // Write control data
         m_writer.write(buf.data(), buf.size());
 
-        // Write diff data
-        for (int64_t i = 0; i < dm.ctrl_data; i++)
-          buffer[i] = m_target[dm.last_scan + i] - m_source[dm.last_pos + i];
-        m_writer.write(buffer.data(), dm.ctrl_data);
+        int64_t already_written_diff = 0;
+        while (already_written_diff != dm.ctrl_data) {
+          int64_t to_write =
+              std::min(dm.ctrl_data - already_written_diff, block_size);
+          // Write diff data
+          for (int64_t i = 0; i < to_write; i++)
+            buffer[i] = m_target[dm.last_scan + already_written_diff + i] -
+                        m_source[dm.last_pos + already_written_diff + i];
 
-        // Write extra data
-        for (int64_t i = 0; i < dm.diff_data; i++)
-          buffer[i] = m_target[dm.last_scan + dm.ctrl_data + i];
-        m_writer.write(buffer.data(), dm.diff_data);
+          m_writer.write(buffer.data(), to_write);
+          already_written_diff += to_write;
+        }
+
+        int64_t already_written_data = 0;
+        while (already_written_data != dm.diff_data) {
+          int64_t to_write =
+              std::min(dm.diff_data - already_written_data, block_size);
+          // Write extra data
+          for (int64_t i = 0; i < to_write; i++)
+            buffer[i] = m_target[dm.last_scan + dm.ctrl_data +
+                                 already_written_data + i];
+          m_writer.write(buffer.data(), to_write);
+          already_written_data += to_write;
+        }
 
         next_position = dm.ctrl_data + dm.diff_data + dm.last_scan;
       }
