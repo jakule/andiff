@@ -108,6 +108,16 @@ struct diff_meta {
   int64_t last_pos;
 };
 
+struct data_range {
+  int64_t start;
+  int64_t end;
+};
+
+struct data_package {
+  synchronized_queue<diff_meta> *dmeta;
+  data_range drange;
+};
+
 template <typename _type, typename _derived, typename _writer>
 class andiff_base {
  public:
@@ -115,7 +125,6 @@ class andiff_base {
               const std::vector<uint8_t> &target, _writer writer,
               uint32_t threads_number)
       : SA(source.size() + 1),
-        m_meta_data(threads_number),
         m_source(source),
         m_target(target),
         m_writer(writer),
@@ -125,31 +134,51 @@ class andiff_base {
     prepare();
     uint32_t threads_number = m_threads_number;
     std::vector<std::thread> threads(threads_number);
-    std::thread save_thread(std::bind(&andiff_base::save, this));
     std::cout << "Comparison has been started using " << threads_number
               << " threads\n";
 
-    _type range = (get_target_size() + 1) / threads_number;
-    _type start = 0;
+    const _type block_size = std::min<_type>(
+        10 * 1024 * 1024, (get_target_size() + 1) / threads_number);
+    uint64_t iterations = get_target_size() / block_size;
+    std::vector<synchronized_queue<diff_meta>> meta_data(iterations);
+    std::thread save_thread(
+        std::bind(&andiff_base::save, this, std::ref(meta_data)));
+
+    synchronized_queue<data_package> data_queue;
+    _type range_start = 0;
+    _type range_end = block_size;
+    uint64_t iter = 0;
+
+    for (; iter < iterations - 1; ++iter) {
+      data_range dr = {range_start, range_end};
+      data_package dp = {&(meta_data[iter]), dr};
+      data_queue.push(dp);
+      range_start = range_end;
+      range_end += block_size;
+    }
+    data_range dr = {range_start, get_target_size()};
+    data_package dp = {&(meta_data[iter]), dr};
+    data_queue.push(dp);
 
     for (uint32_t i = 0; i < threads_number; ++i) {
-      _type end = start + range;
       threads[i] =
-          std::thread(&andiff_base::diff, this, std::ref(m_meta_data[i]), start,
-                      std::min(static_cast<_type>(m_target.size()), end));
-      start = end;
+          std::thread(&andiff_base::process, this, std::ref(data_queue));
     }
+    data_queue.close();
 
     for (uint32_t i = 0; i < threads_number; ++i) {
       threads[i].join();
     }
-
     save_thread.join();
   }
 
  protected:
   inline _type get_target_size() const {
     return static_cast<_type>(m_target.size());
+  }
+
+  inline _type get_source_size() const {
+    return static_cast<_type>(m_source.size());
   }
 
  private:
@@ -161,7 +190,14 @@ class andiff_base {
     static_cast<_derived *>(this)->prepare_specific();
   }
 
-  int diff(synchronized_queue<diff_meta> &meta_data, _type start, _type end) {
+  void process(synchronized_queue<data_package> &dpackage) {
+    data_package dp;
+    while (dpackage.wait_and_pop(dp)) {
+      andiff_base::diff(*(dp.dmeta), dp.drange.start, dp.drange.end);
+    }
+  }
+
+  void diff(synchronized_queue<diff_meta> &meta_data, _type start, _type end) {
     _type scan, pos, len;
     _type lastscan, lastpos, lastoffset;
     _type oldscore, scsc;
@@ -260,18 +296,17 @@ class andiff_base {
     meta_data.close();
   }
 
-  int save() {
+  int save(std::vector<synchronized_queue<diff_meta>> &meta_data) {
     std::array<uint8_t, 8 * 3> buf;
     // Allocate size of output size or 16MB
     const int64_t block_size =
         std::min(m_target.size() + 1, 16UL * 1024 * 1024);
-    /// @todo Fixed size array can be used
     std::vector<uint8_t> buffer(block_size);
     diff_meta dm = {};
     int64_t next_position = 0;
 
-    for (auto &meta_data : m_meta_data) {
-      while (meta_data.wait_and_pop(dm)) {
+    for (auto &mdata : meta_data) {
+      while (mdata.wait_and_pop(dm)) {
         if (dm.last_scan != next_position) continue;
         offtout(dm.ctrl_data, buf.data());
         offtout(dm.diff_data, buf.data() + 8);
@@ -316,12 +351,10 @@ class andiff_base {
 
  protected:
   std::vector<_type> SA;
-  std::vector<synchronized_queue<diff_meta>> m_meta_data;
   const std::vector<uint8_t> &m_source;
   const std::vector<uint8_t> &m_target;
   _writer m_writer;
   const uint32_t m_threads_number;
-  int32_t __aligment_fix;
 };
 
 template <typename _type, typename _writer>
