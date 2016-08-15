@@ -52,14 +52,12 @@ static T search_simple(const std::vector<T> &SA,
 
   while (rpos - lpos > 1) {
     T mid = lpos + (rpos - lpos) / 2;
-    __builtin_prefetch(static_cast<const void *>(&SA[mid]), 0, 1);
 
     const uint8_t *old_start = source.data() + SA[mid];
     T cmp_min = std::min(oldsize - SA[mid], newsize);
     T i = std::min(lmin, rmin);
 
     for (; i < cmp_min; ++i) {
-      __builtin_prefetch(static_cast<const void *>(&target[i]), 0, 1);
       if (old_start[i] < target[i]) {  // move right
         lpos = mid;
         lmin = i;
@@ -106,7 +104,14 @@ struct diff_meta {
   int64_t extra_data;
   int64_t last_scan;
   int64_t last_pos;
+  int64_t last_offset;
 };
+
+bool operator==(const diff_meta &a, const diff_meta &b) {
+  return a.ctrl_data == b.ctrl_data && a.diff_data == b.diff_data &&
+         a.extra_data == b.extra_data && a.last_pos == b.last_pos &&
+         a.last_scan == b.last_scan && a.last_offset == b.last_offset;
+}
 
 struct data_range {
   int64_t start;
@@ -138,7 +143,7 @@ class andiff_base {
               << " threads\n";
 
     const _type block_size = std::min<_type>(
-        10 * 1024 * 1024, (get_target_size() + 1) / threads_number);
+        2 * 1024 * 1024, (get_target_size() + 1) / threads_number);
     uint64_t iterations = get_target_size() / block_size;
     std::vector<synchronized_queue<diff_meta>> meta_data(iterations);
     std::thread save_thread(
@@ -193,26 +198,23 @@ class andiff_base {
   void process(synchronized_queue<data_package> &dpackage) {
     data_package dp;
     while (dpackage.wait_and_pop(dp)) {
-      andiff_base::diff(*(dp.dmeta), dp.drange.start, dp.drange.end);
+      andiff_base::diff(*(dp.dmeta), dp.drange.start, dp.drange.end,
+                        dp.drange.start);
     }
   }
 
-  void diff(synchronized_queue<diff_meta> &meta_data, _type start, _type end) {
+  void diff(synchronized_queue<diff_meta> &meta_data, _type start, _type end,
+            _type lastscan, _type lastpos = 0, _type lastoffset = 0) {
     _type scan, pos, len;
-    _type lastscan, lastpos, lastoffset;
     _type oldscore, scsc;
 
-    bool break_flag = false;  ///@todo I hate this flag....
-
     const _type tsize = get_target_size();
-    const _type ssize = static_cast<_type>(m_source.size());
+    const _type ssize = get_source_size();
 
     scan = start;
     len = 0;
     pos = 0;
-    lastscan = start;
-    lastpos = 0;
-    lastoffset = 0;
+
     while (scan < tsize) {
       oldscore = 0;
 
@@ -229,7 +231,7 @@ class andiff_base {
         if ((scan + lastoffset < ssize) &&
             (m_source[scan + lastoffset] == m_target[scan]))
           oldscore--;
-      };
+      }
 
       if ((len != oldscore) || (scan == tsize)) {
         _type s = 0;
@@ -241,8 +243,8 @@ class andiff_base {
           if (s * 2 - i > Sf * 2 - lenf) {
             Sf = s;
             lenf = i;
-          };
-        };
+          }
+        }
 
         _type lenb = 0;
         if (scan < tsize) {
@@ -253,9 +255,9 @@ class andiff_base {
             if (s * 2 - i > Sb * 2 - lenb) {
               Sb = s;
               lenb = i;
-            };
-          };
-        };
+            }
+          }
+        }
 
         if (lastscan + lenf > scan - lenb) {
           _type overlap = (lastscan + lenf) - (scan - lenb);
@@ -270,15 +272,19 @@ class andiff_base {
             if (s > Ss) {
               Ss = s;
               lens = i + 1;
-            };
-          };
+            }
+          }
 
           lenf += lens - overlap;
           lenb -= lens;
-        };
+        }
 
-        diff_meta dm = {lenf, (scan - lenb) - (lastscan + lenf),
-                        (pos - lenb) - (lastpos + lenf), lastscan, lastpos};
+        diff_meta dm = {lenf,
+                        (scan - lenb) - (lastscan + lenf),
+                        (pos - lenb) - (lastpos + lenf),
+                        lastscan,
+                        lastpos,
+                        lastoffset};
         meta_data.push(dm);
 
         lastoffset = pos - scan;
@@ -286,9 +292,7 @@ class andiff_base {
         lastpos = pos - lenb;
 
         if (lastscan > end) {
-          ///@todo: It works, but I don't like it
-          if (break_flag) break;
-          break_flag = true;
+          break;
         }
       }
     }
@@ -296,57 +300,84 @@ class andiff_base {
     meta_data.close();
   }
 
-  int save(std::vector<synchronized_queue<diff_meta>> &meta_data) {
+  int64_t save_helper(std::vector<uint8_t> &save_buffer, const diff_meta &dm) {
     std::array<uint8_t, 8 * 3> buf;
+    offtout(dm.ctrl_data, buf.data());
+    offtout(dm.diff_data, buf.data() + 8);
+    offtout(dm.extra_data, buf.data() + 16);
+
+    // Write control data
+    m_writer.write(buf.data(), buf.size());
+
+    int64_t already_written_diff = 0;
+    while (already_written_diff != dm.ctrl_data) {
+      int64_t to_write = std::min<int64_t>(dm.ctrl_data - already_written_diff,
+                                           save_buffer.size());
+      // Write diff data
+      for (int64_t i = 0; i < to_write; i++)
+        save_buffer[i] = m_target[dm.last_scan + already_written_diff + i] -
+                         m_source[dm.last_pos + already_written_diff + i];
+
+      m_writer.write(save_buffer.data(), to_write);
+      already_written_diff += to_write;
+    }
+
+    int64_t already_written_data = 0;
+    while (already_written_data != dm.diff_data) {
+      int64_t to_write = std::min<int64_t>(dm.diff_data - already_written_data,
+                                           save_buffer.size());
+      // Write extra data
+      for (int64_t i = 0; i < to_write; i++)
+        save_buffer[i] =
+            m_target[dm.last_scan + dm.ctrl_data + already_written_data + i];
+      m_writer.write(save_buffer.data(), to_write);
+      already_written_data += to_write;
+    }
+
+    int64_t next_position = dm.ctrl_data + dm.diff_data + dm.last_scan;
+    return next_position;
+  }
+
+  void save(std::vector<synchronized_queue<diff_meta>> &meta_data) {
     // Allocate size of output size or 16MB
-    const int64_t block_size =
+    const uint64_t block_size =
         std::min(m_target.size() + 1, 16UL * 1024 * 1024);
-    std::vector<uint8_t> buffer(block_size);
+    std::vector<uint8_t> save_buffer(block_size);
     diff_meta dm = {};
     int64_t next_position = 0;
 
+    meta_data[0].wait_and_pop(dm);
+    next_position = save_helper(save_buffer, dm);
+    diff_meta dm_old = dm;
+
     for (auto &mdata : meta_data) {
       while (mdata.wait_and_pop(dm)) {
-        if (dm.last_scan != next_position) continue;
-        offtout(dm.ctrl_data, buf.data());
-        offtout(dm.diff_data, buf.data() + 8);
-        offtout(dm.extra_data, buf.data() + 16);
-
-        // Write control data
-        m_writer.write(buf.data(), buf.size());
-
-        int64_t already_written_diff = 0;
-        while (already_written_diff != dm.ctrl_data) {
-          int64_t to_write =
-              std::min(dm.ctrl_data - already_written_diff, block_size);
-          // Write diff data
-          for (int64_t i = 0; i < to_write; i++)
-            buffer[i] = m_target[dm.last_scan + already_written_diff + i] -
-                        m_source[dm.last_pos + already_written_diff + i];
-
-          m_writer.write(buffer.data(), to_write);
-          already_written_diff += to_write;
+        // Check if next block match, if we already have it, skip
+        if (dm.last_scan < next_position) continue;
+        // If next is farther than we expected, fill the gap
+        if (dm.last_scan > next_position) {
+          synchronized_queue<diff_meta> sdm;
+          diff(sdm, next_position, dm.last_scan, dm_old.last_scan,
+               dm_old.last_pos, dm_old.last_offset);
+          diff_meta dm1 = {};
+          while (sdm.wait_and_pop(dm1)) {
+            if (dm1.last_scan < next_position) continue;
+            next_position = save_helper(save_buffer, dm1);
+            dm_old = dm1;
+          }
         }
+        if (dm_old == dm) break;
+      }
 
-        int64_t already_written_data = 0;
-        while (already_written_data != dm.diff_data) {
-          int64_t to_write =
-              std::min(dm.diff_data - already_written_data, block_size);
-          // Write extra data
-          for (int64_t i = 0; i < to_write; i++)
-            buffer[i] = m_target[dm.last_scan + dm.ctrl_data +
-                                 already_written_data + i];
-          m_writer.write(buffer.data(), to_write);
-          already_written_data += to_write;
-        }
-
-        next_position = dm.ctrl_data + dm.diff_data + dm.last_scan;
+      while (mdata.wait_and_pop(dm)) {
+        next_position = save_helper(save_buffer, dm);
+        dm_old = dm;
       }
     }
 
-    enforce(next_position == static_cast<_type>(m_target.size()),
-            "Multithreading failed....");
-    return 0;
+    enforce(next_position == static_cast<_type>(m_target.size()) ||
+                next_position != 0,
+            "Not full patch has been generated.");
   }
 
  protected:
@@ -373,11 +404,12 @@ class andiff_simple
       : base(source, target, writer, threads_number) {}
 
   void prepare_specific() {
-    for (typename std::vector<_type>::size_type i = m_source[SA[0]];
-         i < m_source.size() - 1; ++i) {
-      if (m_source[SA[i]] != m_source[SA[i + 1]]) {
-        dict_array[m_source[SA[i + 1]]] = i;
-      }
+    for (uint32_t i = 1; i < 256; ++i) {
+      auto ret = std::lower_bound(
+          SA.begin(), SA.end(), i,
+          [&](const long int &a, const _type &b) { return m_source[a] < b; });
+      dict_array[i] = ret != SA.end() ? std::distance(SA.begin(), ret) - 1
+                                      : dict_array[i - 1];
     }
   }
 
