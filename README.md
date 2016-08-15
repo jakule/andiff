@@ -52,7 +52,7 @@ make
 
 * `ENABLE_ADDRESS_SANITIZER` - Enable Address Sanitizer; Default: OFF   
 * `ENABLE_THREAD_SANITIZER` - Enable Thread Sanitizer; Default: OFF   
-* `GENERATE_DWARF` - Generate DWARF debug symbols with Debug build; Default: ON   
+* `GENERATE_DWARF` - Generate DWARF debug symbols with Debug build; Default: OFF
 * `ENABLE_NATIVE` - Add -march=native to compiler for Release build; Default:ON   
 
 > **Warning:** If you want to use andiff on different machine than was compiler disable this option. Other wise you may end with *Illegal instruction* exception.
