@@ -49,12 +49,14 @@ struct diff_meta {
   int64_t last_scan;
   int64_t last_pos;
   int64_t last_offset;
+  int64_t scan;
 };
 
 bool operator==(const diff_meta &a, const diff_meta &b) {
   return a.ctrl_data == b.ctrl_data && a.diff_data == b.diff_data &&
          a.extra_data == b.extra_data && a.last_pos == b.last_pos &&
-         a.last_scan == b.last_scan && a.last_offset == b.last_offset;
+         a.last_scan == b.last_scan && a.last_offset == b.last_offset &&
+         a.scan == b.scan;
 }
 
 struct data_range {
@@ -408,7 +410,8 @@ void andiff_base<_type, _derived, _writer>::diff(
                       (pos - lenb) - (lastpos + lenf),
                       lastscan,
                       lastpos,
-                      lastoffset};
+                      lastoffset,
+                      scan};
       meta_data.push(dm);
 
       lastoffset = pos - scan;
@@ -484,7 +487,8 @@ void andiff_base<_type, _derived, _writer>::save(
       // If next is farther than we expected, fill the gap
       if (dm.last_scan > next_position) {
         synchronized_queue<diff_meta> sdm;
-        diff(sdm, next_position, dm.last_scan, dm_old.last_scan,
+        // Generate few blocks with "trusted" data
+        diff(sdm, dm_old.scan, dm.last_scan, dm_old.last_scan,
              dm_old.last_pos, dm_old.last_offset);
         diff_meta dm1 = {};
         while (sdm.wait_and_pop(dm1)) {
