@@ -164,8 +164,20 @@ class andiff_simple
   _type dict_array[256] = {0};
 };
 
-/////////// helper functions ///////////
+/////////// Helper functions ///////////
 
+///
+/// \brief Simple version of binary search. It looks for common string in both
+///        arrays.
+/// \param SA      Suffix array calculated from source array
+/// \param source  Array where we look for pattern
+/// \param target  Array with pattern to find
+/// \param newsize Max size of pattern to find
+/// \param pos     Output position when find a match
+/// \param start   Where to start search
+/// \param end     End of source array
+/// \return Length of common string in both arrays
+///
 template <typename T>
 static T search_simple(const std::vector<T> &SA,
                        const std::vector<uint8_t> &source,
@@ -210,6 +222,11 @@ static T search_simple(const std::vector<T> &SA,
   return std::max(rlen, llen);
 }
 
+///
+/// \brief Convert int64_t to array of uint8_t
+/// \param x Value to convert
+/// \param buf Output buffer
+///
 static void offtout(int64_t x, uint8_t *buf) {
   int64_t y;
 

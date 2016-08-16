@@ -43,18 +43,16 @@ int main(int argc, char *argv[]) {
       is_lcp = true;
     }
 
-    ssize_t source_size, target_size;
-
     file_reader source_file;
     source_file.open(argv[1]);
-    source_size = source_file.size();
+    ssize_t source_size = source_file.size();
     std::vector<uint8_t> source(source_size);
     source_file.read(source.data(), source_size);
     source_file.close();
 
     file_reader target_file;
     target_file.open(argv[2]);
-    target_size = target_file.size();
+    ssize_t target_size = target_file.size();
     std::vector<uint8_t> target(target_size);
     target_file.read(target.data(), target_size);
     target_file.close();
