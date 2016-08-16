@@ -30,6 +30,7 @@
 
 int main(int argc, char *argv[]) {
   try {
+    /// @todo Missing cmd paring
     if (argc < 4) {
       std::cerr << "Usage: " << argv[0] << " oldfile newfile patchfile\n"
                 << std::endl;

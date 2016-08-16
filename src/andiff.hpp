@@ -470,12 +470,13 @@ int64_t andiff_base<_type, _derived, _writer>::save_helper(
 template <typename _type, typename _derived, typename _writer>
 void andiff_base<_type, _derived, _writer>::save(
     std::vector<synchronized_queue<diff_meta>> &meta_data) {
-  // Allocate size of output size or 16MB
+  // Allocate array of output size or 16MB (I think that 16 is as good as 8 and 32 megs)
   const uint64_t block_size = std::min(m_target.size() + 1, 16UL * 1024 * 1024);
   std::vector<uint8_t> save_buffer(block_size);
   diff_meta dm = {};
   int64_t next_position = 0;
 
+  /// @todo What if meta_array has no elements??
   meta_data[0].wait_and_pop(dm);
   next_position = save_helper(save_buffer, dm);
   diff_meta dm_old = dm;
@@ -497,6 +498,8 @@ void andiff_base<_type, _derived, _writer>::save(
           dm_old = dm1;
         }
       }
+      // When previous block is the same as current go and save the rest of
+      // queue
       if (dm_old == dm) break;
     }
 
