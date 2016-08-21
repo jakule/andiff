@@ -60,7 +60,7 @@ class base_data_writer {
 
 class file_writer {
  public:
-  file_writer() = default;
+  file_writer() : m_fd(-1), m_curr_pos(0){};
   file_writer(file_writer& a) = default;
 
   void open(const std::string& file_path) {
