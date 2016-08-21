@@ -71,3 +71,5 @@ Thumbs.db
 *.exe
 
 CMakeLists.txt.user
+compile_commands.json
+.idea/
