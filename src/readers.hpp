@@ -38,26 +38,23 @@
 
 #include <bzlib.h>
 
-template <typename T>
+#if 0
+/// Unused interface
 class base_data_reader {
  public:
-  void open(const std::string& file_path) {
-    return static_cast<T*>(this)->open(file_path);
-  }
+  virtual void open(const std::string& file_path) = 0;
 
-  template <typename Type>
-  ssize_t read(Type* buf, ssize_t size) {
-    return static_cast<T*>(this)->read(buf, size);
-  }
+  virtual ssize_t read(std::uint8_t * buf, ssize_t size) = 0;
 
-  bool eof() { return static_cast<T*>(this)->eof(); }
+  virtual bool eof() = 0;
 
-  ssize_t seek(ssize_t pos) { return static_cast<T*>(this)->seek(pos); }
+  virtual ssize_t seek(ssize_t pos) = 0;
 
-  void close() { static_cast<T*>(this)->close(); }
+  virtual void close() = 0;
 };
+#endif
 
-class file_reader : public base_data_reader<file_reader> {
+class file_reader {
  public:
   file_reader() : m_fd(-1), m_curr_pos(0), m_size(0) {}
 
@@ -101,7 +98,7 @@ class file_reader : public base_data_reader<file_reader> {
   ssize_t m_size;
 };
 
-class anpatch_reader : public base_data_reader<anpatch_reader> {
+class anpatch_reader {
  public:
   anpatch_reader() : m_eof(false) {}
 

@@ -37,24 +37,28 @@
 
 #include <bzlib.h>
 
-template <typename T>
+#if 0
+/// Unused interface
 class base_data_writer {
  public:
-  void open(const std::string& file_path) {
-    return static_cast<T*>(this)->open(file_path);
-  }
+  ///
+  /// \param file_path
+  ///
+  virtual void open(const std::string& file_path) = 0;
+  ///
+  /// \param buf
+  /// \param size
+  /// \return
+  ///
+  virtual ssize_t write(std::uint8_t* buf, ssize_t size) = 0;
 
-  template <typename Type>
-  ssize_t write(Type* buf, ssize_t size) {
-    return static_cast<T*>(this)->write(buf, size);
-  }
+  virtual bool eof() = 0;
 
-  bool eof() { return static_cast<T*>(this)->eof(); }
-
-  void close() { static_cast<T*>(this)->close(); }
+  virtual void close() = 0;
 };
+#endif
 
-class file_writer : public base_data_writer<file_writer> {
+class file_writer {
  public:
   file_writer() = default;
   file_writer(file_writer& a) = default;
@@ -80,7 +84,7 @@ class file_writer : public base_data_writer<file_writer> {
   ssize_t m_curr_pos;
 };
 
-class andiff_writer : public base_data_writer<andiff_writer> {
+class andiff_writer {
  public:
   andiff_writer() = default;
   andiff_writer(andiff_writer& a) = default;

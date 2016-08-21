@@ -374,7 +374,7 @@ void andiff_base<_type, _derived, _writer>::diff(
 
       _type lenb = 0;
       if (scan < tsize) {
-        _type s = 0;
+        s = 0;
         _type Sb = 0;
         for (_type i = 1; (scan >= lastscan + i) && (pos >= i); i++) {
           if (m_source[pos - i] == m_target[scan - i]) s++;
@@ -387,7 +387,7 @@ void andiff_base<_type, _derived, _writer>::diff(
 
       if (lastscan + lenf > scan - lenb) {
         _type overlap = (lastscan + lenf) - (scan - lenb);
-        _type s = 0;
+        s = 0;
         _type Ss = 0;
         _type lens = 0;
         for (_type i = 0; i < overlap; i++) {
@@ -470,7 +470,8 @@ int64_t andiff_base<_type, _derived, _writer>::save_helper(
 template <typename _type, typename _derived, typename _writer>
 void andiff_base<_type, _derived, _writer>::save(
     std::vector<synchronized_queue<diff_meta>> &meta_data) {
-  // Allocate array of output size or 16MB (I think that 16 is as good as 8 and 32 megs)
+  // Allocate array of output size or 16MB
+  // (I think that 16 is as good as 8 and 32 megs)
   const uint64_t block_size = std::min(m_target.size() + 1, 16UL * 1024 * 1024);
   std::vector<uint8_t> save_buffer(block_size);
   diff_meta dm = {};
@@ -489,8 +490,8 @@ void andiff_base<_type, _derived, _writer>::save(
       if (dm.last_scan > next_position) {
         synchronized_queue<diff_meta> sdm;
         // Generate few blocks with "trusted" data
-        diff(sdm, dm_old.scan, dm.last_scan, dm_old.last_scan,
-             dm_old.last_pos, dm_old.last_offset);
+        diff(sdm, dm_old.scan, dm.last_scan, dm_old.last_scan, dm_old.last_pos,
+             dm_old.last_offset);
         diff_meta dm1 = {};
         while (sdm.wait_and_pop(dm1)) {
           if (dm1.last_scan < next_position) continue;
