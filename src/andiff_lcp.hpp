@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <vector>
 
 template <typename T>
 T compare_pattern(T offset, const uint8_t *pattern, T pattern_size,

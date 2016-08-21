@@ -35,56 +35,127 @@
 #include <queue>
 #include <thread>
 
+///
+/// \brief Synchronized queue
+///
+/// Synchronized queue to ensure safe communication between threads. After
+/// inserting all data synchronized_queue::close method should be called, to
+/// close the queue and inform other threads that no more data will be added.
+///
 template <typename T>
 class synchronized_queue {
  public:
-  explicit synchronized_queue() : m_data(), m_closed(false) {}
+  explicit synchronized_queue();
 
-  ~synchronized_queue() { enforce(!size(), "destroying not empty queue"); }
+  ///
+  /// \brief Destructor
+  /// It will assert when queue is not empty
+  ~synchronized_queue();
 
-  void push(T& data) {
-    {
-      std::lock_guard<std::mutex> lock(m_mutex);
-      m_data.push(data);
-    }
-    m_cv.notify_one();
-  }
+  ///
+  /// \brief Push data into queue
+  /// \param data Data
+  ///
+  void push(T& data);
 
-  bool wait_and_pop(T& data) {
-    std::unique_lock<std::mutex> lock(m_mutex);
+  ///
+  /// \brief Pop from queue.
+  /// 		If data are not available wait.
+  /// 		If queue has been closed and there is no more elements return
+  ///     false.
+  /// \param data Output data
+  /// \return true if more data is available
+  ///
+  bool wait_and_pop(T& data);
 
-    if (!empty()) {
-      data = m_data.front();
-      m_data.pop();
-      return true;
-    }
+  ///
+  /// \brief Check if queue is closed
+  /// \return true if queue is closed
+  ///
+  bool closed() const;
 
-    if (!closed()) {
-      m_cv.wait(lock, [&] { return closed() || !empty(); });
-      if (empty() && closed()) return false;
-      data = m_data.front();
-      m_data.pop();
-      return true;
-    }
-    return false;
-  }
+  ///
+  /// \brief Close queue
+  ///
+  /// 	After calling this method no more data can be added to queue
+  ///
+  void close();
 
-  bool closed() const { return m_closed; }
+  ///
+  /// \brief Get size of queue
+  /// \return Size of queue
+  ///
+  size_t size() const;
 
-  void close() {
-    m_closed = true;
-    m_cv.notify_one();
-  }
-
-  size_t size() const { return m_data.size(); }
-
-  bool empty() const { return size() == 0; }
+  ///
+  /// \brief Check is queue is empty
+  /// \return true if empty
+  ///
+  bool empty() const;
 
  private:
-  std::queue<T> m_data;
-  std::mutex m_mutex;
-  std::condition_variable m_cv;
-  std::atomic_bool m_closed;
+  std::queue<T> m_data;          ///< Internal queue
+  std::mutex m_mutex;            ///< Internal mutex
+  std::condition_variable m_cv;  ///< Internal condition variable
+  std::atomic_bool m_closed;     ///< Keeps state of
 };
+
+template <typename T>
+synchronized_queue<T>::synchronized_queue() : m_data(), m_closed(false) {}
+
+template <typename T>
+synchronized_queue<T>::~synchronized_queue() {
+  enforce(!size(), "destroying not empty queue");
+}
+
+template <typename T>
+void synchronized_queue<T>::push(T& data) {
+  {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_data.push(data);
+  }
+  m_cv.notify_one();
+}
+
+template <typename T>
+bool synchronized_queue<T>::wait_and_pop(T& data) {
+  std::unique_lock<std::mutex> lock(m_mutex);
+
+  if (!empty()) {
+    data = m_data.front();
+    m_data.pop();
+    return true;
+  }
+
+  if (!closed()) {
+    m_cv.wait(lock, [&] { return closed() || !empty(); });
+    if (empty() && closed()) return false;
+    data = m_data.front();
+    m_data.pop();
+    return true;
+  }
+  return false;
+}
+
+template <typename T>
+bool synchronized_queue<T>::closed() const {
+  return m_closed;
+}
+
+template <typename T>
+void synchronized_queue<T>::close() {
+  m_closed = true;
+  m_cv.notify_one();
+}
+
+template <typename T>
+size_t synchronized_queue<T>::size() const {
+  return m_data.size();
+}
+
+template <typename T>
+bool synchronized_queue<T>::empty() const {
+  return size() == 0;
+}
 
 #endif  // SYNCHRONIZED_QUEUE_HPP

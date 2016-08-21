@@ -1,5 +1,8 @@
-project(andiff)
 cmake_minimum_required(VERSION 3.1)
+cmake_policy(SET CMP0048 NEW)
+
+project(andiff VERSION 0.92)
+message(STATUS "Project version: ${PROJECT_VERSION}")
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -11,7 +14,7 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-
 
 option(ENABLE_ADDRESS_SANITIZER "Enable Address Sanitizer" OFF)
 option(ENABLE_THREAD_SANITIZER "Enable Thread Sanitizer" OFF)
-option(GENERATE_DWARF "Generate DWARF debug symbols" ON)
+option(GENERATE_DWARF "Generate DWARF debug symbols" OFF)
 option(ENABLE_NATIVE "Add -march=native to compiler for Release build" ON)
 
 if(ENABLE_ADDRESS_SANITIZER)
@@ -38,6 +41,15 @@ endif()
 find_package(Threads REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(libdivsufsort REQUIRED)
+find_package(Doxygen)
+
+if(DOXYGEN_FOUND)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+    add_custom_target(doc
+        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating Doxygen documentation" VERBATIM)
+endif(DOXYGEN_FOUND)
 
 # TODO libdivsufsort requires OpenMP with static libraries
 # and only when was compiled with OpenMP support

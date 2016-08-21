@@ -28,6 +28,7 @@
 #define ENFORCE_HPP
 
 #include <assert.h>
+#include <stdlib.h>
 
 #define STR(x) #x
 
@@ -42,7 +43,7 @@
     if (!(cond)) {                                                         \
       fprintf(stderr, "Error ocured: %s\n%s at %s:%d function: %s\n", msg, \
               STR(cond), __FILE__, __LINE__, __PRETTY_FUNCTION__);         \
-      exit(1);                                                             \
+      std::exit(1);                                                        \
     };                                                                     \
   } while (0)
 #endif
