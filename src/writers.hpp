@@ -33,55 +33,53 @@
 #include <vector>
 
 #include <fcntl.h>
+
+#include <cstdio>
+#if defined(_MSC_VER)
+typedef ptrdiff_t ssize_t;
+#else
 #include <unistd.h>
+#endif
 
 #include <bzlib.h>
 
-#if 0
-/// Unused interface
-class base_data_writer {
- public:
-  ///
-  /// \param file_path
-  ///
-  virtual void open(const std::string& file_path) = 0;
-  ///
-  /// \param buf
-  /// \param size
-  /// \return
-  ///
-  virtual ssize_t write(std::uint8_t* buf, ssize_t size) = 0;
-
-  virtual bool eof() = 0;
-
-  virtual void close() = 0;
-};
-#endif
-
 class file_writer {
- public:
-  file_writer() : m_fd(-1), m_curr_pos(0){};
-  file_writer(file_writer& a) = default;
+public:
+    file_writer() : m_fd(nullptr), m_curr_pos(0){};
+    file_writer(const file_writer& other) = delete;
+    file_writer(file_writer&& other) noexcept
+        : m_fd(other.m_fd)
+        , m_curr_pos(other.m_curr_pos)
+    {
+        other.m_fd = nullptr;
+        other.m_curr_pos = -1;
+    }
 
-  void open(const std::string& file_path) {
-    m_fd = ::open(file_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC,
-                  S_IRUSR | S_IWUSR);
-    enforce(m_fd > 0, "Cannot open file for write");
+    ~file_writer() { close(); }
+
+    void open(const std::string& file_path) {
+        m_fd = fopen(file_path.c_str(), "wb");
+        enforce(m_fd != nullptr, "Cannot open file for write");
   }
 
-  template <typename Type>
-  ssize_t write(Type* buf, ssize_t size) {
-    ssize_t chunk = ::write(m_fd, buf, size);
-    enforce(chunk > 0, "Read 0 bytes");
-    m_curr_pos += chunk;
-    return chunk;
-  }
+    template <typename Type>
+    ssize_t write(Type* buf, ssize_t size) {
+        enforce(m_fd, "file_writer not opened, already closed or moved from");
+        ssize_t chunk = fwrite(buf, 1, size, m_fd);
+        enforce(chunk > 0, "Wrote 0 bytes");
+        m_curr_pos += chunk;
+        return chunk;
+    }
 
-  void close() { ::close(m_fd); }
+    void close() {
+        if (m_fd)
+            fclose(m_fd);
+        m_fd = nullptr;
+    }
 
- private:
-  int m_fd;
-  ssize_t m_curr_pos;
+private:
+    FILE* m_fd;
+    ssize_t m_curr_pos;
 };
 
 class andiff_writer {
@@ -90,14 +88,14 @@ class andiff_writer {
   andiff_writer(andiff_writer& a) = default;
 
   void open(const std::string& file_path) {
-    m_fd = std::fopen(file_path.c_str(), "wb");
+    m_fd = fopen(file_path.c_str(), "wb");
     enforce(m_fd > 0, "Cannot open file for write");
   }
 
   template <typename T, size_t Size>
   void write_magic(T (&magic)[Size], int64_t new_size) {
     constexpr size_t string_size = Size - 1;  // Remove null character
-    static_assert(string_size == 16, "Magic size is different");
+    static_assert((Size - 1) == 16, "Magic size is different");
     static_assert(sizeof(new_size) == 8, "New file header has different size");
     enforce(fwrite(magic, string_size, 1, m_fd) == 1 &&
                 fwrite(&new_size, sizeof(new_size), 1, m_fd) == 1,
@@ -120,7 +118,7 @@ class andiff_writer {
 
   void close() {
     BZ2_bzWriteClose(&bz2err, bz2, 0, NULL, NULL);
-    std::fclose(m_fd);
+    fclose(m_fd);
   }
 
  private:

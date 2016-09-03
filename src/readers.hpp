@@ -34,33 +34,33 @@
 #include <vector>
 
 #include <fcntl.h>
+
+#include <cstdio>
+#if defined(_MSC_VER)
+typedef ptrdiff_t ssize_t;
+#else
 #include <unistd.h>
+#endif
 
 #include <bzlib.h>
 
-#if 0
-/// Unused interface
-class base_data_reader {
- public:
-  virtual void open(const std::string& file_path) = 0;
-
-  virtual ssize_t read(std::uint8_t * buf, ssize_t size) = 0;
-
-  virtual bool eof() = 0;
-
-  virtual ssize_t seek(ssize_t pos) = 0;
-
-  virtual void close() = 0;
-};
-#endif
-
 class file_reader {
  public:
-  file_reader() : m_fd(-1), m_curr_pos(0), m_size(0) {}
+  file_reader() : m_fd(nullptr), m_size(0) {}
+  file_reader(const file_reader& other) = delete;
+  file_reader(file_reader&& other) noexcept
+      : m_fd(other.m_fd)
+      , m_size(other.m_size)
+  {
+      other.m_fd = nullptr;
+      other.m_size = -1;
+  }
+
+  ~file_reader() { close(); }
 
   void open(const std::string& file_path) {
-    m_fd = ::open(file_path.c_str(), O_RDONLY);
-    enforce(m_fd > 0, "Cannot open file");
+    m_fd = fopen(file_path.c_str(), "rb");
+    enforce(m_fd != nullptr, "Cannot open file");
     m_size = get_file_size();
   }
 
@@ -68,33 +68,35 @@ class file_reader {
 
   template <typename Type>
   ssize_t read(Type* buf, ssize_t size) {
-    ssize_t chunk = ::read(m_fd, buf, size);
+    enforce(m_fd, "file_reader not opened, already closed or moved from");
+    ssize_t chunk = fread(buf, 1, size, m_fd);
     enforce(chunk > 0, "Read 0 bytes");
-    m_curr_pos += chunk;
     return static_cast<ssize_t>(chunk);
   }
 
   ssize_t seek(ssize_t pos) {
-    ssize_t ret = ::lseek(m_fd, pos, SEEK_SET);
-    enforce(ret == pos, "lseek error");
-    m_curr_pos = ret;
-    return ret;
+    int ret = fseek(m_fd, pos, SEEK_SET);
+    enforce(ret == 0, "fseek error");
+    return pos;
   }
 
-  void close() { ::close(m_fd); }
+  void close() {
+    if (m_fd)
+      fclose(m_fd);
+    m_fd = nullptr;
+  }
 
  private:
   ssize_t get_file_size() {
-    ssize_t seek_ret = lseek(m_fd, 0, SEEK_END);
-    enforce(seek_ret != -1, "lseek error");
-    ssize_t file_size = seek_ret;
-    ssize_t seek_ret_again = lseek(m_fd, 0, SEEK_SET);
-    enforce(seek_ret_again == 0, "");
+    int seek_ret = fseek(m_fd, 0, SEEK_END);
+    enforce(seek_ret == 0, "fseek error");
+    ssize_t file_size = ftell(m_fd);
+    int seek_ret_again = fseek(m_fd, 0, SEEK_SET);
+    enforce(seek_ret_again == 0, "fseek error");
     return file_size;
   }
 
-  int m_fd;
-  ssize_t m_curr_pos;
+  FILE* m_fd;
   ssize_t m_size;
 };
 
@@ -108,11 +110,18 @@ class anpatch_reader {
     open(file_path, magic);
   }
 
-  anpatch_reader(anpatch_reader&& an_reader) noexcept = default;
+  anpatch_reader(anpatch_reader&& an_reader) noexcept
+      : m_fd(an_reader.m_fd)
+      , m_bz2file(an_reader.m_bz2file)
+      , m_eof(an_reader.m_eof)
+  {
+      an_reader.m_fd = nullptr;
+      an_reader.m_bz2file = nullptr;
+  }
 
   template <size_t N>
   void open(const std::string& file_path, const char (&magic)[N]) {
-    m_fd = std::fopen(file_path.c_str(), "r");
+    m_fd = fopen(file_path.c_str(), "rb");
     enforce(m_fd, "Cannot open bz2 file");
 
     check_magic(magic);
@@ -123,10 +132,11 @@ class anpatch_reader {
   }
 
   ssize_t size() {
-    ssize_t seek_ret = std::fseek(m_fd, 0, SEEK_END);
-    enforce(seek_ret != -1, "bad seek");
-    ssize_t file_size = std::ftell(m_fd);
-    std::fseek(m_fd, 0, SEEK_SET);
+    ssize_t seek_ret = fseek(m_fd, 0, SEEK_END);
+    enforce(seek_ret != -1, "fseek error");
+    ssize_t file_size = ftell(m_fd);
+    int seek_ret_again = fseek(m_fd, 0, SEEK_SET);
+    enforce(seek_ret_again == 0, "fseek error");
     return file_size;
   }
 

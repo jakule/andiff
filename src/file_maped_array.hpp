@@ -97,11 +97,11 @@ file_mapped_array<T, block_type>::file_mapped_array(
 
 template <typename T, typename block_type>
 file_mapped_array<T, block_type>::file_mapped_array(
-    file_mapped_array&& fma) noexcept : m_data(fma.m_data.release()),
+    file_mapped_array&& fma) noexcept : m_data(std::move(fma.m_data)),
                                         m_offset(fma.m_offset),
                                         m_cache_end(fma.m_cache_end),
                                         m_buffer_size(fma.m_buffer_size),
-                                        m_reader(fma.m_reader) {}
+                                        m_reader(std::move(fma.m_reader)) {}
 
 template <typename T, typename block_type>
 block_type& file_mapped_array<T, block_type>::operator[](size_t pos) {

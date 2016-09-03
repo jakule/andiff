@@ -28,6 +28,8 @@
 
 #include "andiff.hpp"
 
+#include <limits>
+
 int main(int argc, char *argv[]) {
   try {
     /// @todo Missing cmd paring

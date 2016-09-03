@@ -41,6 +41,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <array>
 
 struct diff_meta {
   int64_t ctrl_data;
@@ -163,7 +164,7 @@ class andiff_simple
   inline _type search(_type scan, _type &pos) const;
 
  private:
-  _type dict_array[256] = {0};
+  _type dict_array[256];
 };
 
 /////////// Helper functions ///////////
@@ -472,7 +473,7 @@ void andiff_base<_type, _derived, _writer>::save(
     std::vector<synchronized_queue<diff_meta>> &meta_data) {
   // Allocate array of output size or 16MB
   // (I think that 16 is as good as 8 and 32 megs)
-  const uint64_t block_size = std::min(m_target.size() + 1, 16UL * 1024 * 1024);
+  const uint64_t block_size = std::min<uint64_t>(m_target.size() + 1, 16UL * 1024 * 1024);
   std::vector<uint8_t> save_buffer(block_size);
   diff_meta dm = {};
   int64_t next_position = 0;
@@ -526,6 +527,7 @@ andiff_simple<_type, _writer>::andiff_simple(const std::vector<uint8_t> &source,
 
 template <typename _type, typename _writer>
 void andiff_simple<_type, _writer>::prepare_specific() {
+  dict_array[0] = 0;
   for (uint32_t i = 1; i < 256; ++i) {
     auto ret = std::lower_bound(
         SA.begin(), SA.end(), i,
