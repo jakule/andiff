@@ -12,6 +12,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
 
+if(WIN32)
+    #TODO For Windows build link everything statically to avoid problem with dependencies.
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+endif()
+
 option(ENABLE_ADDRESS_SANITIZER "Enable Address Sanitizer" OFF)
 option(ENABLE_THREAD_SANITIZER "Enable Thread Sanitizer" OFF)
 option(GENERATE_DWARF "Generate DWARF debug symbols" OFF)
@@ -66,4 +71,3 @@ add_test(NAME SanityCheck
                    --diff $<TARGET_FILE:${DIFF_EXE_NAME}>
                    --patch $<TARGET_FILE:${PATCH_EXE_NAME}>
                    --size 1)
-

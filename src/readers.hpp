@@ -33,9 +33,6 @@
 #include <string>
 #include <vector>
 
-#include <fcntl.h>
-#include <unistd.h>
-
 #include <bzlib.h>
 
 #if 0
@@ -56,11 +53,11 @@ class base_data_reader {
 
 class file_reader {
  public:
-  file_reader() : m_fd(-1), m_curr_pos(0), m_size(0) {}
+  file_reader() : m_fd(nullptr), m_curr_pos(0), m_size(0) {}
 
   void open(const std::string& file_path) {
-    m_fd = ::open(file_path.c_str(), O_RDONLY);
-    enforce(m_fd > 0, "Cannot open file");
+    m_fd = fopen(file_path.c_str(), "rb");
+    enforce(m_fd != nullptr, "Cannot open file");
     m_size = get_file_size();
   }
 
@@ -68,32 +65,33 @@ class file_reader {
 
   template <typename Type>
   ssize_t read(Type* buf, ssize_t size) {
-    ssize_t chunk = ::read(m_fd, buf, size);
+    ssize_t chunk = fread(buf, sizeof(Type), size, m_fd);
     enforce(chunk > 0, "Read 0 bytes");
     m_curr_pos += chunk;
     return static_cast<ssize_t>(chunk);
   }
 
   ssize_t seek(ssize_t pos) {
-    ssize_t ret = ::lseek(m_fd, pos, SEEK_SET);
-    enforce(ret == pos, "lseek error");
+    ssize_t ret = fseek(m_fd, pos, SEEK_SET);
+    enforce(ret == 0, "lseek error");
     m_curr_pos = ret;
     return ret;
   }
 
-  void close() { ::close(m_fd); }
+  void close() { fclose(m_fd); }
 
  private:
   ssize_t get_file_size() {
-    ssize_t seek_ret = lseek(m_fd, 0, SEEK_END);
-    enforce(seek_ret != -1, "lseek error");
-    ssize_t file_size = seek_ret;
-    ssize_t seek_ret_again = lseek(m_fd, 0, SEEK_SET);
+    ssize_t seek_ret = fseek(m_fd, 0, SEEK_END);
+    enforce(seek_ret == 0, "lseek error");
+    ssize_t file_size = ftell(m_fd);
+    enforce(file_size != -1, "ftell error");
+    ssize_t seek_ret_again = fseek(m_fd, 0, SEEK_SET);
     enforce(seek_ret_again == 0, "");
     return file_size;
   }
 
-  int m_fd;
+  FILE* m_fd;
   ssize_t m_curr_pos;
   ssize_t m_size;
 };
@@ -112,7 +110,7 @@ class anpatch_reader {
 
   template <size_t N>
   void open(const std::string& file_path, const char (&magic)[N]) {
-    m_fd = std::fopen(file_path.c_str(), "r");
+    m_fd = std::fopen(file_path.c_str(), "rb");
     enforce(m_fd, "Cannot open bz2 file");
 
     check_magic(magic);

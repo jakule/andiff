@@ -32,9 +32,6 @@
 #include <memory>
 #include <vector>
 
-#include <fcntl.h>
-#include <unistd.h>
-
 #include <bzlib.h>
 
 #if 0
@@ -60,27 +57,26 @@ class base_data_writer {
 
 class file_writer {
  public:
-  file_writer() : m_fd(-1), m_curr_pos(0){};
+  file_writer() : m_fd(nullptr), m_curr_pos(0){};
   file_writer(file_writer& a) = default;
 
   void open(const std::string& file_path) {
-    m_fd = ::open(file_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC,
-                  S_IRUSR | S_IWUSR);
-    enforce(m_fd > 0, "Cannot open file for write");
+    m_fd = fopen(file_path.c_str(), "wb");
+    enforce(m_fd != nullptr, "Cannot open file for write");
   }
 
   template <typename Type>
   ssize_t write(Type* buf, ssize_t size) {
-    ssize_t chunk = ::write(m_fd, buf, size);
+    ssize_t chunk = fwrite(buf, sizeof(Type), size, m_fd);
     enforce(chunk > 0, "Read 0 bytes");
     m_curr_pos += chunk;
     return chunk;
   }
 
-  void close() { ::close(m_fd); }
+  void close() { fclose(m_fd); }
 
  private:
-  int m_fd;
+  FILE* m_fd;
   ssize_t m_curr_pos;
 };
 

@@ -472,7 +472,8 @@ void andiff_base<_type, _derived, _writer>::save(
     std::vector<synchronized_queue<diff_meta>> &meta_data) {
   // Allocate array of output size or 16MB
   // (I think that 16 is as good as 8 and 32 megs)
-  const uint64_t block_size = std::min(m_target.size() + 1, 16UL * 1024 * 1024);
+  const uint64_t block_size =
+      std::min<uint64_t>(m_target.size() + 1, 16UL * 1024 * 1024);
   std::vector<uint8_t> save_buffer(block_size);
   diff_meta dm = {};
   int64_t next_position = 0;
