@@ -101,7 +101,7 @@ class synchronized_queue {
 };
 
 template <typename T>
-synchronized_queue<T>::synchronized_queue() : m_data(), m_closed(false) {}
+synchronized_queue<T>::synchronized_queue() : m_data(), m_closed(ATOMIC_VAR_INIT(false)) {}
 
 template <typename T>
 synchronized_queue<T>::~synchronized_queue() {
