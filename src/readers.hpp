@@ -59,7 +59,7 @@ class file_reader {
   ~file_reader() { close(); }
 
   void open(const std::string& file_path) {
-    m_fd = fopen(file_path.c_str(), "rb+");
+    m_fd = fopen(file_path.c_str(), "rb");
     enforce(m_fd != nullptr, "Cannot open file");
     m_size = get_file_size();
   }
