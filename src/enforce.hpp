@@ -32,6 +32,12 @@
 
 #define STR(x) #x
 
+#if defined(_MSC_VER)
+  #define FUNCTION_NAME __FUNCTION__
+#else
+  #define FUNCTION_NAME __PRETTY_FUNCTION__
+#endif
+
 #if !defined(NDEBUG)
 #define enforce(cond, msg) \
   do {                     \
@@ -42,7 +48,7 @@
   do {                                                                     \
     if (!(cond)) {                                                         \
       fprintf(stderr, "Error ocured: %s\n%s at %s:%d function: %s\n", msg, \
-              STR(cond), __FILE__, __LINE__, __PRETTY_FUNCTION__);         \
+              STR(cond), __FILE__, __LINE__, FUNCTION_NAME);               \
       std::exit(1);                                                        \
     };                                                                     \
   } while (0)
