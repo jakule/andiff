@@ -6,11 +6,23 @@ message(STATUS "Project version: ${PROJECT_VERSION}")
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fstrict-aliasing -Wunused-result")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fstrict-aliasing -Wunused-result")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
+elseif(MSVC)
+    if(MSVC_VERSION LESS 1900) # if MSVC < 14 2015
+        add_compile_options("/D_ALLOW_KEYWORD_MACROS")      # Allow for hacks below
+        add_compile_options("/Dnoexcept=throw()")           # Visual Studio 2013 doesn't understand noexcept
+        add_compile_options("/Dconstexpr=")                 # Visual Studio 2013 doesn't understand constexpr
+        add_compile_options("/Dstatic_assert(cond,msg)=")       # Visual Studio 2013 doesn't understand static_assert
+    endif()
+    add_compile_options("/wd4244")                      # conversion from 'uint64_t' to 'unsigned int', possible loss of data
+    add_compile_options(/D_CRT_SECURE_NO_WARNINGS)      # Eliminate deprecation warnings for the older, less secure functions.
+    add_compile_options(/D_CRT_NONSTDC_NO_DEPRECATE)    # Disable warning "The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _open. See online help for details."
+endif()
 
 option(ENABLE_ADDRESS_SANITIZER "Enable Address Sanitizer" OFF)
 option(ENABLE_THREAD_SANITIZER "Enable Thread Sanitizer" OFF)
