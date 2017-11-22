@@ -33,7 +33,7 @@ install:
 script:
  - mkdir andiff-build
  - cd andiff-build
- - conan export --file ../andiff/third_party/conanfile.py libdivsufsort/2.0.1@jakule/stable
+ - cd ../andiff/third_party/ && conan export libdivsufsort/2.0.1@jakule/stable && cd -
  - conan install ../andiff -s build_type=Release --build=missing
  - cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ../andiff
  - cmake --build .
