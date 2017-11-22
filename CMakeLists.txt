@@ -40,6 +40,22 @@ endif()
 
 find_package(Threads REQUIRED)
 find_package(BZip2 REQUIRED)
+find_package(libdivsufsort)
+
+if(NOT libdivsufsort_FOUND)
+    message(STATUS "Building libdivsufsort")
+
+    configure_file(${CMAKE_SOURCE_DIR}/third_party/libdivsufsort.cmake
+            ${CMAKE_BINARY_DIR}/third_party/libdivsufsort/CMakeLists.txt)
+
+    execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/third_party/libdivsufsort/" )
+    execute_process(COMMAND "${CMAKE_COMMAND}" --build .
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/third_party/libdivsufsort/" )
+
+    set(LIBDIVSUFSORT_PREFIX "${CMAKE_BINARY_DIR}/third_party/libdivsufsort/install/")
+endif()
+
 find_package(libdivsufsort REQUIRED)
 find_package(Doxygen)
 
@@ -55,8 +71,8 @@ endif(DOXYGEN_FOUND)
 # and only when was compiled with OpenMP support
 find_package(OpenMP)
 
-set(DIFF_EXE_NAME "andiff")
-set(PATCH_EXE_NAME "anpatch")
+set(DIFF_EXE_NAME andiff)
+set(PATCH_EXE_NAME anpatch)
 
 add_subdirectory(src)
 
@@ -66,4 +82,3 @@ add_test(NAME SanityCheck
                    --diff $<TARGET_FILE:${DIFF_EXE_NAME}>
                    --patch $<TARGET_FILE:${PATCH_EXE_NAME}>
                    --size 1)
-

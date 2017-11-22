@@ -41,6 +41,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <functional>
 
 struct diff_meta {
   int64_t ctrl_data;
