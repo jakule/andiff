@@ -25,7 +25,7 @@ before_install:
 
 install:
   # Install conan
-  - pip3 install conan
+  - sudo pip3 install conan
   # Automatic detection of your arch, compiler, etc.
   - conan user
 
