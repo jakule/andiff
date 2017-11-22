@@ -12,8 +12,19 @@ Prerequisites
 * CMake 3.1: [https://cmake.org/](https://cmake.org/)
 * libdivsufsort: [https://github.com/y-256/libdivsufsort](https://github.com/y-256/libdivsufsort)
 
-Building
-========
+Building with Conan
+===================
+```shell
+git clone https://github.com/jakule/andiff.git
+cd andiff
+mkdir build && cd build/
+conan install .. -s build_type=Release --build=missing
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . 
+ctest -V
+cmake --build . --target package
+```
+
 
 **Ubuntu 14.04:**
 
@@ -36,8 +47,8 @@ sudo dnf install gcc-c++ bzip2-libs cmake
 cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DUSE_OPENMP:BOOL=ON \
 -DBUILD_DIVSUFSORT64:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=OFF \
 -DCMAKE_INSTALL_PREFIX:PATH=${LIBDIVSUFSORT_INSTALL_PREFIX} ../libdivsufsort/
-make
-make install
+cmake --build .
+cmake --build . --target install
 ```
 
 #### andiff
@@ -45,7 +56,7 @@ make install
 ```shell
 cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release \
 -DLIBDIVSUFSORT_PREFIX:PATH=${LIBDIVSUFSORT_INSTALL_PREFIX} ../andiff
-make
+cmake --build .
 ```
 
 ## CMake compilation options:

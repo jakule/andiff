@@ -1,13 +1,13 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.1.3)
 cmake_policy(SET CMP0048 NEW)
 
-project(andiff VERSION 0.92)
+project(andiff VERSION 0.93)
 message(STATUS "Project version: ${PROJECT_VERSION}")
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fstrict-aliasing -Wunused-result")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -fstrict-aliasing -Wunused-result")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
@@ -38,24 +38,15 @@ if(ENABLE_NATIVE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 endif()
 
-find_package(Threads REQUIRED)
-find_package(BZip2 REQUIRED)
-find_package(libdivsufsort)
-
-if(NOT libdivsufsort_FOUND)
-    message(STATUS "Building libdivsufsort")
-
-    configure_file(${CMAKE_SOURCE_DIR}/third_party/libdivsufsort.cmake
-            ${CMAKE_BINARY_DIR}/third_party/libdivsufsort/CMakeLists.txt)
-
-    execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
-            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/third_party/libdivsufsort/" )
-    execute_process(COMMAND "${CMAKE_COMMAND}" --build .
-            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/third_party/libdivsufsort/" )
-
-    set(LIBDIVSUFSORT_PREFIX "${CMAKE_BINARY_DIR}/third_party/libdivsufsort/install/")
+if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    conan_basic_setup()
+else()
+    message(WARNING "The file conanbuildinfo.cmake doesn't exist, you have to run conan install first")
 endif()
 
+find_package(Threads REQUIRED)
+find_package(BZip2 REQUIRED)
 find_package(libdivsufsort REQUIRED)
 find_package(Doxygen)
 
@@ -82,3 +73,7 @@ add_test(NAME SanityCheck
                    --diff $<TARGET_FILE:${DIFF_EXE_NAME}>
                    --patch $<TARGET_FILE:${PATCH_EXE_NAME}>
                    --size 1)
+
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_GENERATOR "TGZ")
+include(CPack)

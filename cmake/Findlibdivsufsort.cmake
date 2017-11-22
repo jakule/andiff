@@ -14,11 +14,12 @@ find_path(LIBDIVSUFSORT64_INCLUDE_DIR divsufsort64.h
           PATH_SUFFIXES include)
 
 find_library(LIBDIVSUFSORT_LIBRARY NAMES divsufsort
-             HINTS ${LIBDIVSUFSORT_PREFIX}  ${LIBDIVSUFSORT_LIBDIR}
+             HINTS ${LIBDIVSUFSORT_PREFIX} ${LIBDIVSUFSORT_LIBDIR}
              PATH_SUFFIXES lib)
 
 find_library(LIBDIVSUFSORT64_LIBRARY NAMES divsufsort64
-             HINTS ${LIBDIVSUFSORT_PREFIX}/lib  ${LIBDIVSUFSORT64_LIBDIR})
+             HINTS ${LIBDIVSUFSORT_PREFIX} ${LIBDIVSUFSORT64_LIBDIR}
+             PATH_SUFFIXES lib)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(libdivsufsort  DEFAULT_MSG

@@ -1,0 +1,15 @@
+[requires]
+bzip2/1.0.6@conan/stable
+libdivsufsort/2.0.1@jakule/stable
+gtest/1.8.0@hoxnox/stable
+
+[options]
+bzip2:shared=False
+bzip2:fPIC=False
+libdivsufsort:build64=True
+libdivsufsort:use_openmp=True
+gtest:shared=False
+gtest:with_gmock=False
+
+[generators]
+cmake
