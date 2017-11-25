@@ -29,15 +29,17 @@ install:
   - sudo pip3 install conan
   # Automatic detection of your arch, compiler, etc.
   - conan user
+  # Add repository with additional dependencies
+  - conan remote add bintray-jakule https://api.bintray.com/conan/jakule/public-conan
 
 script:
  - mkdir andiff-build
  - cd andiff-build
- - cd ../andiff/third_party/ && conan export libdivsufsort/2.0.1@jakule/stable && cd -
  - conan install ../andiff -s build_type=Release --build=missing
  - cmake -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ../andiff
  - cmake --build .
  - ctest -V
+ - cpack -V
 
 notifications:
   email: false
