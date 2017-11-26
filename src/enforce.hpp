@@ -27,15 +27,15 @@
 #ifndef ENFORCE_HPP
 #define ENFORCE_HPP
 
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 
 #define STR(x) #x
 
 #if !defined(NDEBUG)
-#define enforce(cond, msg) \
-  do {                     \
-    assert((cond) && msg); \
+#define enforce(cond, msg)   \
+  do {                       \
+    assert((cond) && (msg)); \
   } while (0)
 #else
 #define enforce(cond, msg)                                                 \

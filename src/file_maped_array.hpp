@@ -97,11 +97,12 @@ file_mapped_array<T, block_type>::file_mapped_array(
 
 template <typename T, typename block_type>
 file_mapped_array<T, block_type>::file_mapped_array(
-    file_mapped_array&& fma) noexcept : m_data(fma.m_data.release()),
-                                        m_offset(fma.m_offset),
-                                        m_cache_end(fma.m_cache_end),
-                                        m_buffer_size(fma.m_buffer_size),
-                                        m_reader(fma.m_reader) {}
+    file_mapped_array&& fma) noexcept
+    : m_data(fma.m_data.release()),
+      m_offset(fma.m_offset),
+      m_cache_end(fma.m_cache_end),
+      m_buffer_size(fma.m_buffer_size),
+      m_reader(fma.m_reader) {}
 
 template <typename T, typename block_type>
 block_type& file_mapped_array<T, block_type>::operator[](size_t pos) {
@@ -121,7 +122,7 @@ void file_mapped_array<T, block_type>::fill_data(size_t pos) {
   m_cache_end = m_offset + read;
 }
 
-typedef file_mapped_array<file_reader, std::uint8_t> file_array;
-typedef file_mapped_array<anpatch_reader, std::uint8_t> bz2_array;
+using file_array = file_mapped_array<file_reader, std::uint8_t>;
+using bz2_array = file_mapped_array<anpatch_reader, std::uint8_t>;
 
 #endif  // FILE_MAPED_ARRAY_HPP

@@ -39,9 +39,9 @@
 #include "writers.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <vector>
-#include <functional>
 
 struct diff_meta {
   int64_t ctrl_data;
@@ -53,7 +53,7 @@ struct diff_meta {
   int64_t scan;
 };
 
-bool operator==(const diff_meta &a, const diff_meta &b) {
+bool inline operator==(const diff_meta &a, const diff_meta &b) {
   return a.ctrl_data == b.ctrl_data && a.diff_data == b.diff_data &&
          a.extra_data == b.extra_data && a.last_pos == b.last_pos &&
          a.last_scan == b.last_scan && a.last_offset == b.last_offset &&
@@ -149,9 +149,9 @@ class andiff_simple
  public:
   using base = andiff_base<_type, andiff_simple<_type, _writer>, _writer>;
   using base::SA;
+  using base::get_target_size;
   using base::m_source;
   using base::m_target;
-  using base::get_target_size;
 
   andiff_simple(const std::vector<uint8_t> &source,
                 const std::vector<uint8_t> &target, uint32_t threads_number,
@@ -190,7 +190,7 @@ static T search_simple(const std::vector<T> &SA,
   T rpos = start + end;
   T lmin = 1;
   T rmin = 1;
-  T oldsize = static_cast<T>(source.size());
+  auto oldsize = static_cast<T>(source.size());
 
   while (rpos - lpos > 1) {
     T mid = lpos + (rpos - lpos) / 2;
@@ -241,8 +241,6 @@ static void offtout(int64_t x, uint8_t *buf) {
   *reinterpret_cast<int64_t *>(buf) = y;
 
   if (x < 0) buf[7] |= 0x80;
-
-  return;
 }
 
 ////////// andiff_base implementation //////////
@@ -321,7 +319,7 @@ void andiff_base<_type, _derived, _writer>::prepare() {
 template <typename _type, typename _derived, typename _writer>
 void andiff_base<_type, _derived, _writer>::process(
     synchronized_queue<data_package> &dpackage) {
-  data_package dp;
+  data_package dp{};
   while (dpackage.wait_and_pop(dp)) {
     andiff_base::diff(*(dp.dmeta), dp.drange.start, dp.drange.end,
                       dp.drange.start);
@@ -431,7 +429,7 @@ void andiff_base<_type, _derived, _writer>::diff(
 template <typename _type, typename _derived, typename _writer>
 int64_t andiff_base<_type, _derived, _writer>::save_helper(
     std::vector<uint8_t> &save_buffer, const diff_meta &dm) {
-  std::array<uint8_t, 8 * 3> buf;
+  std::array<uint8_t, 8 * 3> buf{};
   offtout(dm.ctrl_data, buf.data());
   offtout(dm.diff_data, buf.data() + 8);
   offtout(dm.extra_data, buf.data() + 16);
@@ -475,7 +473,7 @@ void andiff_base<_type, _derived, _writer>::save(
   // (I think that 16 is as good as 8 and 32 megs)
   const uint64_t block_size = std::min(m_target.size() + 1, 16UL * 1024 * 1024);
   std::vector<uint8_t> save_buffer(block_size);
-  diff_meta dm = {};
+  diff_meta dm{};
   int64_t next_position = 0;
 
   /// @todo What if meta_array has no elements??
@@ -493,7 +491,7 @@ void andiff_base<_type, _derived, _writer>::save(
         // Generate few blocks with "trusted" data
         diff(sdm, dm_old.scan, dm.last_scan, dm_old.last_scan, dm_old.last_pos,
              dm_old.last_offset);
-        diff_meta dm1 = {};
+        diff_meta dm1{};
         while (sdm.wait_and_pop(dm1)) {
           if (dm1.last_scan < next_position) continue;
           next_position = save_helper(save_buffer, dm1);
@@ -530,7 +528,7 @@ void andiff_simple<_type, _writer>::prepare_specific() {
   for (uint32_t i = 1; i < 256; ++i) {
     auto ret = std::lower_bound(
         SA.begin(), SA.end(), i,
-        [&](const long int &a, const _type &b) { return m_source[a] < b; });
+        [&](const int64_t &a, const _type &b) { return m_source[a] < b; });
     dict_array[i] = ret != SA.end() ? std::distance(SA.begin(), ret) - 1
                                     : dict_array[i - 1];
   }

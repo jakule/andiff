@@ -34,7 +34,7 @@
 #include "readers.hpp"
 #include "writers.hpp"
 
-static int64_t offtin(uint8_t* buf) {
+static int64_t offtin(const uint8_t* buf) {
   int64_t y;
 
   y = buf[7] & 0x7F;

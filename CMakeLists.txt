@@ -30,7 +30,7 @@ if(ENABLE_THREAD_SANITIZER)
 endif()
 
 if(GENERATE_DWARF)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-4  -gsplit-dwarf -fuse-ld=gold ")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-4 -gsplit-dwarf -fuse-ld=gold")
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -Wl,--gdb-index")
 endif()
 
@@ -56,7 +56,7 @@ if(DOXYGEN_FOUND)
         ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating Doxygen documentation" VERBATIM)
-endif(DOXYGEN_FOUND)
+endif()
 
 # TODO libdivsufsort requires OpenMP with static libraries
 # and only when was compiled with OpenMP support
@@ -68,11 +68,7 @@ set(PATCH_EXE_NAME anpatch)
 add_subdirectory(src)
 
 enable_testing()
-add_test(NAME SanityCheck
-         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/sanity_check.py
-                   --diff $<TARGET_FILE:${DIFF_EXE_NAME}>
-                   --patch $<TARGET_FILE:${PATCH_EXE_NAME}>
-                   --size 1)
+add_subdirectory(tests)
 
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_GENERATOR "TGZ")

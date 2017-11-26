@@ -38,26 +38,8 @@
 
 #include <bzlib.h>
 
-#if 0
-/// Unused interface
-class base_data_reader {
- public:
-  virtual void open(const std::string& file_path) = 0;
-
-  virtual ssize_t read(std::uint8_t * buf, ssize_t size) = 0;
-
-  virtual bool eof() = 0;
-
-  virtual ssize_t seek(ssize_t pos) = 0;
-
-  virtual void close() = 0;
-};
-#endif
-
 class file_reader {
  public:
-  file_reader() : m_fd(-1), m_curr_pos(0), m_size(0) {}
-
   void open(const std::string& file_path) {
     m_fd = ::open(file_path.c_str(), O_RDONLY);
     enforce(m_fd > 0, "Cannot open file");
@@ -93,18 +75,15 @@ class file_reader {
     return file_size;
   }
 
-  int m_fd;
-  ssize_t m_curr_pos;
-  ssize_t m_size;
+  int m_fd{-1};
+  ssize_t m_curr_pos{0};
+  ssize_t m_size{0};
 };
 
 class anpatch_reader {
  public:
-  anpatch_reader() : m_eof(false) {}
-
   template <size_t N>
-  anpatch_reader(const std::string& file_path, const char (&magic)[N])
-      : m_eof(false) {
+  anpatch_reader(const std::string& file_path, const char (&magic)[N]) {
     open(file_path, magic);
   }
 
@@ -118,7 +97,7 @@ class anpatch_reader {
     check_magic(magic);
 
     int bz2err;
-    m_bz2file = BZ2_bzReadOpen(&bz2err, m_fd, 0, 0, NULL, 0);
+    m_bz2file = BZ2_bzReadOpen(&bz2err, m_fd, 0, 0, nullptr, 0);
     enforce(bz2err == BZ_OK, "bz2 read error");
   }
 
@@ -134,10 +113,11 @@ class anpatch_reader {
   ssize_t read(Type* buf, ssize_t size) {
     int bz2err;
     int n = BZ2_bzRead(&bz2err, m_bz2file, buf, int(size));
-    if (bz2err == BZ_STREAM_END)
+    if (bz2err == BZ_STREAM_END) {
       m_eof = true;
-    else
+    } else {
       enforce(bz2err == BZ_OK, "bz2 read error");
+    }
     enforce(n > 0,
             "bz2 read no data");  ///@todo What in case when eof was reached??
     return static_cast<ssize_t>(n);
@@ -169,7 +149,7 @@ class anpatch_reader {
 
   FILE* m_fd;
   BZFILE* m_bz2file;
-  bool m_eof;
+  bool m_eof{false};
 };
 
 #endif  // READERS_HPP

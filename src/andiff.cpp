@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     target_file.read(target.data(), target_size);
     target_file.close();
 
-    andiff_writer aw;
+    andiff_writer aw{};
     aw.open(argv[3]);
 
     // Save magic
@@ -70,22 +70,22 @@ int main(int argc, char *argv[]) {
     if (source_size < std::numeric_limits<int32_t>::max() &&
         target_size < std::numeric_limits<int32_t>::max()) {
       if (is_lcp) {
-        std::cout << "32 lcp" << std::endl;
+        std::cout << "Using 32-bit indexes with LCP" << std::endl;
         andiff_runner<andiff_lcp, int32_t>(source, target, aw);
       } else {
-        std::cout << "32" << std::endl;
+        std::cout << "Using 32-bit indexes" << std::endl;
         andiff_runner<andiff_simple, int32_t>(source, target, aw);
       }
     } else {
       /// @todo add lcp support
-      std::cout << "64" << std::endl;
+      std::cout << "Using 64-bit indexes" << std::endl;
       andiff_runner<andiff_simple, int64_t>(source, target, aw);
     }
     aw.close();  // If exception has been thrown output file won't be closed,
                  // but this is not a big problem because OS will do that
 
   } catch (std::bad_alloc &e) {
-    std::cerr << "Cannot allocate memory: " << e.what() << std::endl;
+    std::cerr << "Cannot allocate memory: " << e.what() << '\n';
     return 2;
   } catch (std::exception &e) {
     std::cerr << e.what() << "std\n";

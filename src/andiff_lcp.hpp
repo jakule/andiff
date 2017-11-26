@@ -53,10 +53,8 @@ inline bool less_eq(int64_t lcp_offset, const uint8_t *pattern,
                     int64_t pattern_size, const uint8_t *source,
                     int64_t source_size, int64_t start) {
   if (lcp_offset == pattern_size) return true;
-  if (start + lcp_offset < source_size &&
-      pattern[lcp_offset] < source[start + lcp_offset])
-    return true;
-  return false;
+  return start + lcp_offset < source_size &&
+         pattern[lcp_offset] < source[start + lcp_offset];
 }
 
 template <typename T>
@@ -158,14 +156,14 @@ T calculate_lcp_lr_util(const std::vector<T> &lcp, std::vector<T> &lcp_lr,
 
 template <typename T>
 std::vector<T> calculate_lcp_lr(const std::vector<T> &lcp) {
-  T size = static_cast<T>(lcp.size());
+  const auto size = lcp.size();
   std::vector<T> lcp_rl(size);
 
-  T mid = size / 2;
+  const auto mid = size / 2;
 
   lcp_rl[mid] =
-      std::min(calculate_lcp_lr_util(lcp, lcp_rl, static_cast<T>(0), mid),
-               calculate_lcp_lr_util(lcp, lcp_rl, mid, size));
+      std::min(calculate_lcp_lr_util<T>(lcp, lcp_rl, static_cast<T>(0), mid),
+               calculate_lcp_lr_util<T>(lcp, lcp_rl, mid, size));
 
   return lcp_rl;
 }
