@@ -43,12 +43,11 @@ TEST(SynchronizedQueueTest, MultipleThreads) {
 
   std::vector<std::thread> v;
   for (int i = 0; i < 5; ++i) {
-    v.emplace_back(std::move(std::thread{[&q]() {
+    v.emplace_back(std::thread{[&q]() {
       int a;
       while (q.wait_and_pop(a))
         ;
-
-    }}));
+    }});
   }
 
   q.close();
