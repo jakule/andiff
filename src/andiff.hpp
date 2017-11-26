@@ -81,7 +81,7 @@ class andiff_base {
   /// \param threads_number Numbers of threads used for computations
   ///
   andiff_base(const std::vector<uint8_t> &source,
-              const std::vector<uint8_t> &target, _writer& writer,
+              const std::vector<uint8_t> &target, _writer &writer,
               uint32_t threads_number);
   ///
   /// \brief Main method, start comparison
@@ -139,7 +139,7 @@ class andiff_base {
   std::vector<_type> SA;                 ///< Suffix array
   const std::vector<uint8_t> &m_source;  ///< Source/old file
   const std::vector<uint8_t> &m_target;  ///< Target/new file
-  _writer& m_writer;  ///< File writer. Right now only Bz2 writer is supported
+  _writer &m_writer;  ///< File writer. Right now only Bz2 writer is supported
   const uint32_t m_threads_number;  ///< Number of threads used for processing
 };
 
@@ -248,7 +248,7 @@ static void offtout(int64_t x, uint8_t *buf) {
 template <typename _type, typename _derived, typename _writer>
 andiff_base<_type, _derived, _writer>::andiff_base(
     const std::vector<uint8_t> &source, const std::vector<uint8_t> &target,
-    _writer& writer, uint32_t threads_number)
+    _writer &writer, uint32_t threads_number)
     : SA(source.size() + 1),
       m_source(source),
       m_target(target),
@@ -263,8 +263,10 @@ void andiff_base<_type, _derived, _writer>::run() {
   std::cout << "Comparison has been started using " << threads_number
             << " threads\n";
 
-  const _type block_size = std::min<_type>(
-      2 * 1024 * 1024, (get_target_size() + 1) / threads_number);
+  constexpr static auto default_block_size = 2 * 1024 * 1024;
+  const _type block_size =
+      std::min<_type>(default_block_size,
+                      (get_target_size() + threads_number) / threads_number);
   uint64_t iterations = get_target_size() / block_size;
   std::vector<synchronized_queue<diff_meta>> meta_data(iterations);
   std::thread save_thread(
