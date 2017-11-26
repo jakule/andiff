@@ -37,8 +37,8 @@
 ///
 /// \brief The file_mapped_array class
 ///
-/// Class can read data from file using only a constant buffer. Size of the
-/// buffer can be specified in constructor.
+/// Class can read data from file using only a constant buffer.
+/// Size of the buffer can be specified in constructor.
 ///
 template <typename T, typename block_type>
 class file_mapped_array {

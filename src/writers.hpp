@@ -37,12 +37,15 @@
 
 #include <bzlib.h>
 
-
 class file_writer {
  public:
   file_writer() = default;
+
   file_writer(const file_writer&) = delete;
+  file_writer& operator=(const file_writer&) = delete;
+
   file_writer(file_writer&&) noexcept = default;
+  file_writer& operator=(file_writer&&) = default;
 
   void open(const std::string& file_path) {
     m_fd = ::open(file_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC,
@@ -68,7 +71,8 @@ class file_writer {
 class andiff_writer {
  public:
   andiff_writer() = default;
-  andiff_writer(andiff_writer& a) = delete;
+  andiff_writer(const andiff_writer&) = delete;
+  andiff_writer& operator=(const andiff_writer&) = delete;
 
   void open(const std::string& file_path) {
     m_fd = std::fopen(file_path.c_str(), "wb");
