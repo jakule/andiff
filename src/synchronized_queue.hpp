@@ -45,7 +45,7 @@
 template <typename T>
 class synchronized_queue {
  public:
-  explicit synchronized_queue();
+  synchronized_queue() = default;
 
   ///
   /// \brief Destructor
@@ -72,14 +72,14 @@ class synchronized_queue {
   /// \brief Check if queue is closed
   /// \return true if queue is closed
   ///
-  bool closed() const;
+  bool closed() const noexcept;
 
   ///
   /// \brief Close queue
   ///
   /// 	After calling this method no more data can be added to queue
   ///
-  void close();
+  void close() noexcept;
 
   ///
   /// \brief Get size of queue
@@ -94,14 +94,11 @@ class synchronized_queue {
   bool empty() const;
 
  private:
-  std::queue<T> m_data;          ///< Internal queue
-  std::mutex m_mutex;            ///< Internal mutex
-  std::condition_variable m_cv;  ///< Internal condition variable
-  std::atomic_bool m_closed;     ///< Keeps state of
+  std::queue<T> m_data{};            ///< Internal queue
+  std::mutex m_mutex;                ///< Internal mutex
+  std::condition_variable m_cv;      ///< Internal condition variable
+  std::atomic_bool m_closed{false};  ///< Keeps state of
 };
-
-template <typename T>
-synchronized_queue<T>::synchronized_queue() : m_data(), m_closed(false) {}
 
 template <typename T>
 synchronized_queue<T>::~synchronized_queue() {
@@ -138,14 +135,14 @@ bool synchronized_queue<T>::wait_and_pop(T& data) {
 }
 
 template <typename T>
-bool synchronized_queue<T>::closed() const {
+bool synchronized_queue<T>::closed() const noexcept {
   return m_closed;
 }
 
 template <typename T>
-void synchronized_queue<T>::close() {
+void synchronized_queue<T>::close() noexcept {
   m_closed = true;
-  m_cv.notify_one();
+  m_cv.notify_all();
 }
 
 template <typename T>
