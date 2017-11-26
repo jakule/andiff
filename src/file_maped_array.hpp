@@ -48,7 +48,8 @@ class file_mapped_array {
   /// \param file_name Path to file
   /// \param buffer_size Size of buffer
   ///
-  file_mapped_array(const std::string& file_name, size_t buffer_size = 1024);
+  explicit file_mapped_array(const std::string& file_name,
+                             size_t buffer_size = 1024);
 
   ///
   /// \brief Removed copy constructor

@@ -62,7 +62,7 @@ template <typename block_type>
 class anpatcher {
  public:
   anpatcher(file_array&& old_file, anpatch_reader&& patch_file,
-            std::string& output_file, ssize_t block_size)
+            std::string& output_file, int64_t block_size)
       : m_data(new block_type[block_size]),
         m_block_size(block_size),
         m_old_pos(0),

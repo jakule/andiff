@@ -37,29 +37,13 @@
 
 #include <bzlib.h>
 
-#if 0
-/// Unused interface
-class base_data_writer {
- public:
-  ///
-  /// \param file_path
-  ///
-  virtual void open(const std::string& file_path) = 0;
-  ///
-  /// \param buf
-  /// \param size
-  /// \return
-  ///
-  virtual ssize_t write(std::uint8_t* buf, ssize_t size) = 0;
-
-  virtual bool eof() = 0;
-
-  virtual void close() = 0;
-};
-#endif
 
 class file_writer {
  public:
+  file_writer() = default;
+  file_writer(const file_writer&) = delete;
+  file_writer(file_writer&&) noexcept = default;
+
   void open(const std::string& file_path) {
     m_fd = ::open(file_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC,
                   S_IRUSR | S_IWUSR);
@@ -84,7 +68,7 @@ class file_writer {
 class andiff_writer {
  public:
   andiff_writer() = default;
-  andiff_writer(andiff_writer& a) = default;
+  andiff_writer(andiff_writer& a) = delete;
 
   void open(const std::string& file_path) {
     m_fd = std::fopen(file_path.c_str(), "wb");
@@ -121,8 +105,8 @@ class andiff_writer {
   }
 
  private:
-  FILE* m_fd;
-  BZFILE* bz2;
-  int bz2err;
+  FILE* m_fd{nullptr};
+  BZFILE* bz2{nullptr};
+  int bz2err{-1};
 };
 #endif  // WRITERS_HPP

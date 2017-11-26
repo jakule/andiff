@@ -39,12 +39,13 @@ int main(int argc, char* argv[]) {
       exit(1);
     }
 
-    file_array old_file(argv[1]);
+    file_array old_file{argv[1]};
+    std::string new_file{argv[2]};
     anpatch_reader patch_file(argv[3], andiff_magic);
-    std::string new_file = argv[2];
 
+    static constexpr auto block_size = 5 * 1024;
     anpatcher<uint8_t> patcher(std::move(old_file), std::move(patch_file),
-                               new_file, 5 * 1024);
+                               new_file, block_size);
     patcher.run();
   } catch (std::exception& e) {
     std::cerr << "Something went wrong: " << e.what() << std::endl;
