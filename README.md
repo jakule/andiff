@@ -8,7 +8,7 @@ Prerequisites
 =============
 
 * C++11 compiler - tested with GCC 4.8+ and Clang 3.8+
-* CMake 3.1.3: [https://cmake.org/](https://cmake.org/)
+* CMake 3.5: [https://cmake.org/](https://cmake.org/)
 
 The dependencies below can be installed with [Conan](https://www.conan.io/):
 * bzip2 library: [http://www.bzip.org/](http://www.bzip.org/)
@@ -22,7 +22,7 @@ sudo apt-get install build-essential
 
 > **Note:** For Ubuntu 14.04 required CMake is not available in Ubuntu repository and should be downloaded from CMake [site](https://cmake.org/download/).
 
-**Fedora 22:**
+**Fedora 24:**
 ```shell
 sudo dnf install gcc-c++ cmake
 ```
