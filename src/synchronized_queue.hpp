@@ -45,7 +45,7 @@
 template <typename T>
 class synchronized_queue {
  public:
-  synchronized_queue() = default;
+  synchronized_queue();
 
   ///
   /// \brief Destructor
@@ -94,11 +94,14 @@ class synchronized_queue {
   bool empty() const;
 
  private:
-  std::queue<T> m_data{};            ///< Internal queue
-  std::mutex m_mutex;                ///< Internal mutex
-  std::condition_variable m_cv;      ///< Internal condition variable
-  std::atomic_bool m_closed{false};  ///< Keeps state of
+  std::queue<T> m_data;          ///< Internal queue
+  std::mutex m_mutex;            ///< Internal mutex
+  std::condition_variable m_cv;  ///< Internal condition variable
+  std::atomic_bool m_closed;     ///< Keeps state of
 };
+
+template <typename T>
+synchronized_queue<T>::synchronized_queue() : m_closed{false} {}
 
 template <typename T>
 synchronized_queue<T>::~synchronized_queue() {
