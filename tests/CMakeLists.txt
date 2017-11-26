@@ -10,3 +10,9 @@ add_test(NAME SanityCheck
 #        --diff $<TARGET_FILE:${DIFF_EXE_NAME}>
 #        --patch $<TARGET_FILE:${PATCH_EXE_NAME}>
 #        --size 0)
+
+find_package(GTest REQUIRED)
+
+include(functions.cmake)
+
+an_add_tests(TARGET synchronized_queue SOURCES synchronized_queue_test.cpp)
