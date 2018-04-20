@@ -31,6 +31,7 @@ install:
   - conan user
   # Add repository with additional dependencies
   - conan remote add bintray-jakule https://api.bintray.com/conan/jakule/public-conan
+  - conan remote add bincrafters https://api.bintray.com/conan/bincrafters/public-conan
 
 script:
  - mkdir andiff-build
